@@ -335,4 +335,4 @@ def search(query, page):
     return searchbooks(query, page)
 
 
-app.run(host='localhost')
+app.run(threaded=True, port=5000)
