@@ -14,6 +14,7 @@ Flask==1.1.2
 Flask-Cors==3.0.8
 Flask-Session==0.3.2
 Flask-WTF==0.14.3
+gunicorn
 h5py==2.10.0
 idna==2.10
 isort==4.3.21
