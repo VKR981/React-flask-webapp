@@ -26,8 +26,8 @@ MarkupSafe==1.1.1
 mccabe==0.6.1
 mkl-fft
 mkl-random
-
 numpy==1.18.5
+pandas==1.0.5
 pipenv==2020.6.2
 psycopg2==2.8.4
 pycparser==2.20
