@@ -15,10 +15,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, ForeignKey
-import pandas as pd
+
 from flask_cors import CORS
 from functools import wraps
-
+pd=[]
 
 app = Flask(__name__,static_folder="build/static", template_folder="build")
 
