@@ -140,7 +140,6 @@ def fetchbooks(page):
 
     for j in range((16*page+1), (16*page+17)):
         i = session.query(bookstable).get(j)
-        # gddata=fetchratings(i.isbn)
         isbn_list.append(i.isbn)
         data[i.id] = {'isbn': i.isbn,
                       'title': i.title,
