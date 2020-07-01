@@ -33,7 +33,7 @@ CORS(app)
 
 Base = declarative_base()
 
-engine = create_engine(os.getenv('DATABASE_URL'), echo=False)
+engine = create_engine('postgres://eriiqwwnobgpfp:0910bf434fd8657e7981d9d23d1da7463449291139472fcce8551622d9bbcc6f@ec2-35-172-73-125.compute-1.amazonaws.com:5432/d72nbdo9dc9lcu', echo=False)
 
 
 class Users(Base):
@@ -129,7 +129,7 @@ def fetchbooks(page):
     isbn_list = []
     k = 0
     for j in range((16*page+1), (16*page+17)):
-        i = session.query(bookstable).get(j)
+        i = session.query(bookstable).filter(bookstable.id==j+1)[0]
         isbn_list.append(i.isbn)
         data[k] = {'isbn': i.isbn,
                    'title': i.title,
