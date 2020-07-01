@@ -15,13 +15,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, ForeignKey
-import pandas as pd
 from flask_cors import CORS
 from functools import wraps
 
 
-app = Flask(__name__,static_folder="build/static", template_folder="build")
-
+app = Flask(__name__, static_folder="build/static", template_folder="build")
 
 
 app.config["SECRET_KEY"] = os.getenv('SECRET_KEY')
@@ -111,14 +109,6 @@ def login(email, password):
         return 'unregistered email'
 
 
-def fetchratings(isbn):
-    res = requests.get('https://www.goodreads.com/book/review_counts.json',
-                       params={"key": "cDo4XqMrHK7BAvVWXJVkQ", "isbns": isbn})
-
-    data = res.json()['books']
-    return data
-
-
 def fetchratingsall(isbn_list):
 
     url = 'https://www.goodreads.com/book/review_counts.json?isbns='
@@ -129,49 +119,66 @@ def fetchratingsall(isbn_list):
     res = requests.get(url)
 
     data = res.json()['books']
-    d = pd.DataFrame(data)
-    return d
+    #d = pd.DataFrame(data)
+    return data
 
 
 def fetchbooks(page):
 
     data = {}
     isbn_list = []
-
+    k = 0
     for j in range((16*page+1), (16*page+17)):
         i = session.query(bookstable).get(j)
         isbn_list.append(i.isbn)
-        data[i.id] = {'isbn': i.isbn,
-                      'title': i.title,
-                      'author': i.author,
-                      'year': i.year,
-                      'localavgrating': float(i.avgrating),
-                      'localtotalratings': int(i.totalratings),
-                      'reviews': i.reviews}
+        data[k] = {'isbn': i.isbn,
+                   'title': i.title,
+                   'author': i.author,
+                   'year': i.year,
+                   'localavgrating': float(i.avgrating),
+                   'localtotalratings': int(i.totalratings),
+                   'reviews': i.reviews}
+        k += 1
     gddata = fetchratingsall(isbn_list)
+    data2 = {}
+    for i in range(0, len(data)):
+        for j in gddata:
+            if data[i]['isbn'] == j['isbn']:
+                totalratings = data[i]['localtotalratings']+j['ratings_count']
+                data[i]['localavgrating'] = (data[i]['localavgrating']*data[i]['localtotalratings']+float(
+                    j['average_rating'])*j['ratings_count'])/totalratings
+                data[i]['localtotalratings'] = totalratings
 
-    data2 = pd.DataFrame(data.values())
-    merged = pd.merge(left=data2, right=gddata,
-                      left_on='isbn', right_on='isbn')
-    merged['average_rating'] = merged['average_rating'].astype(float)
-    merged['ratings_count'] = merged['ratings_count'] + \
-        merged['localtotalratings']
-    merged['average_rating'] = (merged['average_rating']*merged['ratings_count'] +
-                                merged['localavgrating']*merged['localtotalratings'])/merged['ratings_count']
-    merged = merged.to_json(orient='records')
-    return merged
+    return json.dumps(list(data.values()))
+
+
+def fetchbookisbn(isbn):
+    data = {}
+
+    i = session.query(bookstable).filter(bookstable.isbn == isbn)[0]
+
+    data[0] = {
+        "title": i.title,
+        "author": i.author,
+        "year": i.year,
+        "isbn": i.isbn,
+        "review_count": i.reviews,
+        "average_score": i.avgrating
+    }
+    return json.dumps(list(data.values()))
 
 
 def searchbooks(query, page):
 
     data = {}
     isbn_list = []
+    k = 0
     for keyword in query.split():
         result = session.query(bookstable).filter(
             bookstable.title.contains(keyword))[(16*page+1):(16*page+17)]
         for book in result:
             isbn_list.append(book.isbn)
-            data[book.id] = {
+            data[k] = {
                 'isbn': book.isbn,
                 'title': book.title,
                 'author': book.author,
@@ -179,21 +186,22 @@ def searchbooks(query, page):
                 'localavgrating': float(book.avgrating),
                 'localtotalratings': int(book.totalratings),
                 'reviews': book.reviews}
+            k += 1
 
-    data2 = pd.DataFrame(data.values())
-    if not (len(data2.index)):
-        return data2.to_json(orient='records')
+    if not (len(data)):
+        return json.dumps(data)
     gddata = fetchratingsall(isbn_list)
-    merged = pd.merge(left=data2, right=gddata,
-                      left_on='isbn', right_on='isbn')
+    data2 = {}
 
-    merged['average_rating'] = merged['average_rating'].astype(float)
-    merged['ratings_count'] = merged['ratings_count'] + \
-        merged['localtotalratings']
-    merged['average_rating'] = (merged['average_rating']*merged['ratings_count'] +
-                                merged['localavgrating']*merged['localtotalratings'])/merged['ratings_count']
-    merged = merged.to_json(orient='records')
-    return merged
+    for i in range(0, len(data)):
+        for j in gddata:
+            if data[i]['isbn'] == j['isbn']:
+                totalratings = data[i]['localtotalratings']+j['ratings_count']
+                data[i]['localavgrating'] = (data[i]['localavgrating']*data[i]['localtotalratings']+float(
+                    j['average_rating'])*j['ratings_count'])/totalratings
+                data[i]['localtotalratings'] = totalratings
+
+    return json.dumps(list(data.values()))
 
 
 def fetchreviews(isbn):
@@ -206,10 +214,7 @@ def fetchreviews(isbn):
                       'userid': i.user.username
                       }
 
-    data = pd.DataFrame(data.values())
-    data = data.to_json(orient='records')
-
-    return data
+    return json.dumps(list(data.values()))
 
 
 def savereview(isbn, review, rating, email):
@@ -276,10 +281,9 @@ def tokenvalidator():
 @app.route('/<path:path>')
 def index(path):
     return render_template('index.html')
-    
 
 
-@app.route('/register', methods=['POST', 'GET'])
+@app.route('/api/register', methods=['POST', 'GET'])
 def userregisteration():
 
     form = Registeration()
@@ -292,14 +296,15 @@ def userregisteration():
     return 'invalid fields'
 
 
-@app.route('/login', methods=['POST', 'GET'])
+@app.route('/api/login', methods=['POST', 'GET'])
 def userlogin():
     form = Loginform()
     if form.validate_on_submit():
         passcheck = login(form.data['email'], form.data['password'])
         if passcheck == 'login successfull':
-            username = session.query(Users.username).filter(Users.email == form.data['email'])[0][0]
-            token = jwt.encode({'email': form.data['email'],'username':username, 'exp': datetime.datetime.utcnow(
+            username = session.query(Users.username).filter(
+                Users.email == form.data['email'])[0][0]
+            token = jwt.encode({'email': form.data['email'], 'username': username, 'exp': datetime.datetime.utcnow(
             )+datetime.timedelta(hours=48)}, app.config['SECRET_KEY'])
             return {'token': token.decode('UTF-8')}
         else:
@@ -332,6 +337,12 @@ def submitreview():
 def search(query, page):
 
     return searchbooks(query, page)
+
+
+@app.route('/api/<string:isbn>', methods=['POST', 'GET'])
+def bookisbn(isbn):
+    return fetchbookisbn(isbn)
+
 
 if __name__ == '__main__':
     # Threaded option to enable multiple instances for multiple user access support
