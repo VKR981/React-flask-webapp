@@ -1,8 +1,8 @@
-# Project 1: Books, CS50’s Web Programming with Python and JavaScript
+## Project 1: Books, CS50’s Web Programming with Python and JavaScript
 
 https://react-flask-webapp.herokuapp.com
 
-A website where users can register/login and read/write reviews on books. using React.js for front end and Flask for backend. Semantic UI react is used for UI, SQLAlchemy is used for CRUD operations.
+This website where users can register/login and read/write reviews on books. using React.js for front end and Flask for backend. Semantic UI react is used for UI, SQLAlchemy is used for CRUD operations.
 
 
 ## Home page
