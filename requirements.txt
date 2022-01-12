@@ -28,7 +28,7 @@ mkl-fft
 mkl-random
 
 numpy==1.18.5
-pipenv==2020.6.2
+pipenv==2022.1.8
 psycopg2==2.8.4
 pycparser==2.20
 pylint==2.5.3
